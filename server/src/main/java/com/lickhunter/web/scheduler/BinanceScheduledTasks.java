@@ -109,6 +109,7 @@ public class BinanceScheduledTasks {
     public void pauseOnStopLoss() {
         accountService.getAccountInformation();
         tradeService.stopLoss();
+        tradeService.stopLossSinglePosition();
     }
 
     @Scheduled(fixedRateString = "30000")

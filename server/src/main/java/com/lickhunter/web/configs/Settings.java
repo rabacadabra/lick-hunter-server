@@ -23,6 +23,7 @@ import java.util.Map;
         "leverage",
         "takeprofit",
         "stoploss",
+        "stoplossSinglePosition",
         "auth",
         "delay",
         "discordwebhook",
@@ -60,6 +61,8 @@ public final class Settings {
     private String takeprofit;
     @JsonProperty("stoploss")
     private String stoploss;
+    @JsonProperty("stoplossSinglePosition")
+    private String stoplossSinglePosition;
     @JsonProperty("auth")
     private String auth;
     @JsonProperty("delay")
@@ -219,6 +222,19 @@ public final class Settings {
     @JsonProperty("stoploss")
     public void setStoploss(String stoploss) {
         this.stoploss = stoploss;
+    }
+
+    @JsonProperty("stoplossSinglePosition")
+    public String getStoplossSinglePosition() {
+        if (stoplossSinglePosition == null || stoplossSinglePosition.length() == 0)
+            return "0";
+        else
+            return stoplossSinglePosition;
+    }
+
+    @JsonProperty("stoplossSinglePosition")
+    public void setStoplossSinglePosition(String stoplossSinglePosition) {
+        this.stoplossSinglePosition = stoplossSinglePosition;
     }
 
     @JsonProperty("auth")

@@ -18,6 +18,7 @@ import com.lickhunter.web.repositories.PositionRepository;
 import com.lickhunter.web.repositories.SymbolRepository;
 import com.lickhunter.web.scheduler.LickHunterScheduledTasks;
 import com.lickhunter.web.services.*;
+import com.lickhunter.web.to.TickerQueryTO;
 import lombok.RequiredArgsConstructor;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
@@ -70,11 +71,11 @@ public class TradeServiceImpl implements TradeService {
         List<PositionRecord> positionRecordList = positionRepository.findByAccountId(settings.getKey());
         AtomicReference<Boolean> changed = new AtomicReference<>(false);
         positionRecordList.stream()
-            .filter(positionRecord -> positionRecord.getSymbol().matches("^.*USDT$"))
+                .filter(positionRecord -> positionRecord.getSymbol().matches("^.*USDT$"))
                 .filter(positionRecord -> positionRecord.getInitialMargin() == 0.0)
                 .forEach(p -> {
-                    if((activeSettings.getMarginType().equalsIgnoreCase(TradeConstants.ISOLATED.getValue()) && !p.getIsolated())
-                                || (activeSettings.getMarginType().equalsIgnoreCase(TradeConstants.CROSSED.getValue()) && p.getIsolated())) {
+                    if ((activeSettings.getMarginType().equalsIgnoreCase(TradeConstants.ISOLATED.getValue()) && !p.getIsolated())
+                            || (activeSettings.getMarginType().equalsIgnoreCase(TradeConstants.CROSSED.getValue()) && p.getIsolated())) {
                         try {
                             this.marginType(p.getSymbol(), activeSettings.getMarginType().toUpperCase());
                             log.info(String.format("Successfully changed margin type of %s to %s", p.getSymbol(), activeSettings.getMarginType().toUpperCase()));
@@ -86,7 +87,7 @@ public class TradeServiceImpl implements TradeService {
                         }
                     }
                 });
-        if(changed.get()) {
+        if (changed.get()) {
             accountService.getAccountInformation();
         }
     }
@@ -110,7 +111,7 @@ public class TradeServiceImpl implements TradeService {
                         log.error(message);
                     }
                 });
-        if(changed.get()) {
+        if (changed.get()) {
             accountService.getAccountInformation();
         }
     }
@@ -127,13 +128,13 @@ public class TradeServiceImpl implements TradeService {
         List<PositionRecord> activePositions = positionRepository.findActivePositionsByAccountId(settings.getKey());
         activePositions.forEach(positionRecord -> {
             Optional<SymbolRecord> symbolRecord = symbolRepository.findBySymbol(positionRecord.getSymbol());
-            if(syncRequestClient.getOpenOrders(positionRecord.getSymbol()).isEmpty() && symbolRecord.isPresent()) {
+            if (syncRequestClient.getOpenOrders(positionRecord.getSymbol()).isEmpty() && symbolRecord.isPresent()) {
                 List<Order> order = syncRequestClient.getAllOrders(
-                        positionRecord.getSymbol(),
-                        Objects.isNull(positionRecord.getOrderId()) ? null : positionRecord.getOrderId(),
-                        null,
-                        null,
-                        null)
+                                positionRecord.getSymbol(),
+                                Objects.isNull(positionRecord.getOrderId()) ? null : positionRecord.getOrderId(),
+                                null,
+                                null,
+                                null)
                         .stream()
                         .filter(o -> o.getStatus().equalsIgnoreCase(OrderState.FILLED.name())
                                 && o.getType().equalsIgnoreCase(OrderType.MARKET.name()))
@@ -145,7 +146,7 @@ public class TradeServiceImpl implements TradeService {
                 Integer scale = BigDecimal.valueOf(symbolRecord.get().getTickSize()).stripTrailingZeros().scale();
                 Double diff = BigDecimal.valueOf(Double.parseDouble(positionRecord.getEntryPrice()) * this.getPercentTakeProfit(symbolRecord.get()).doubleValue() / 100)
                         .setScale(scale, RoundingMode.HALF_DOWN).doubleValue();
-                if(order.get(0).getSide().equalsIgnoreCase(OrderSide.BUY.name())) {
+                if (order.get(0).getSide().equalsIgnoreCase(OrderSide.BUY.name())) {
                     syncRequestClient.postOrder(
                             positionRecord.getSymbol(),
                             OrderSide.SELL,
@@ -161,7 +162,7 @@ public class TradeServiceImpl implements TradeService {
                             NewOrderRespType.RESULT,
                             "false");
                 }
-                if(order.get(0).getSide().equalsIgnoreCase(OrderSide.SELL.name())) {
+                if (order.get(0).getSide().equalsIgnoreCase(OrderSide.SELL.name())) {
                     syncRequestClient.postOrder(
                             positionRecord.getSymbol(),
                             OrderSide.BUY,
@@ -187,23 +188,23 @@ public class TradeServiceImpl implements TradeService {
         SyncRequestClient syncRequestClient = SyncRequestClient.create(settings.getKey(), settings.getSecret());
         Optional<PositionRecord> positionRecord = positionRepository.findBySymbolAndAccountId(orderUpdate.getSymbol(), settings.getKey());
         Optional<SymbolRecord> symbolRecord = symbolRepository.findBySymbol(orderUpdate.getSymbol());
-        if((orderUpdate.getType().equalsIgnoreCase(OrderType.MARKET.name())
-                    && orderUpdate.getExecutionType().equalsIgnoreCase(TransactType.TRADE.name())
-                    && orderUpdate.getOrderStatus().equalsIgnoreCase(OrderState.FILLED.name())
-                    && !orderUpdate.getIsReduceOnly())
+        if ((orderUpdate.getType().equalsIgnoreCase(OrderType.MARKET.name())
+                && orderUpdate.getExecutionType().equalsIgnoreCase(TransactType.TRADE.name())
+                && orderUpdate.getOrderStatus().equalsIgnoreCase(OrderState.FILLED.name())
+                && !orderUpdate.getIsReduceOnly())
 //                && syncRequestClient.getOpenOrders(orderUpdate.getSymbol()).isEmpty()
                 && (positionRecord.isPresent() && symbolRecord.isPresent())) {
             //cancel open order
             syncRequestClient.cancelAllOpenOrder(orderUpdate.getSymbol());
             List<Order> order = syncRequestClient.getAllOrders(
-                        orderUpdate.getSymbol(),
-                        Objects.isNull(positionRecord.get().getOrderId()) ? null : positionRecord.get().getOrderId(),
-                        null,
-                        null,
-                        null)
+                            orderUpdate.getSymbol(),
+                            Objects.isNull(positionRecord.get().getOrderId()) ? null : positionRecord.get().getOrderId(),
+                            null,
+                            null,
+                            null)
                     .stream()
                     .filter(o -> o.getStatus().equalsIgnoreCase(OrderState.FILLED.name())
-                        && o.getType().equalsIgnoreCase(OrderType.MARKET.name()))
+                            && o.getType().equalsIgnoreCase(OrderType.MARKET.name()))
                     .sorted(Comparator.comparing(Order::getUpdateTime).reversed())
                     .collect(Collectors.toList());
             BigDecimal qty = order.stream()
@@ -212,7 +213,7 @@ public class TradeServiceImpl implements TradeService {
             Integer scale = BigDecimal.valueOf(symbolRecord.get().getTickSize()).stripTrailingZeros().scale();
             Double diff = BigDecimal.valueOf(Double.parseDouble(positionRecord.get().getEntryPrice()) * this.getPercentTakeProfit(symbolRecord.get()).doubleValue() / 100)
                     .setScale(scale, RoundingMode.HALF_DOWN).doubleValue();
-            if(orderUpdate.getSide().equalsIgnoreCase(OrderSide.BUY.name()) && orderUpdate.getType().equalsIgnoreCase(OrderType.MARKET.name())) {
+            if (orderUpdate.getSide().equalsIgnoreCase(OrderSide.BUY.name()) && orderUpdate.getType().equalsIgnoreCase(OrderType.MARKET.name())) {
                 syncRequestClient.postOrder(
                         orderUpdate.getSymbol(),
                         OrderSide.SELL,
@@ -228,7 +229,7 @@ public class TradeServiceImpl implements TradeService {
                         NewOrderRespType.RESULT,
                         "false");
             }
-            if(orderUpdate.getSide().equalsIgnoreCase(OrderSide.SELL.name()) && orderUpdate.getType().equalsIgnoreCase(OrderType.MARKET.name())) {
+            if (orderUpdate.getSide().equalsIgnoreCase(OrderSide.SELL.name()) && orderUpdate.getType().equalsIgnoreCase(OrderType.MARKET.name())) {
                 syncRequestClient.postOrder(
                         orderUpdate.getSymbol(),
                         OrderSide.BUY,
@@ -273,29 +274,29 @@ public class TradeServiceImpl implements TradeService {
         List<PositionRecord> positionRecords = positionRepository.findActivePositionsByAccountId(settings.getKey());
         positionRecords.forEach(positionRecord -> {
             Optional<SymbolRecord> symbolRecord = symbolRepository.findBySymbol(positionRecord.getSymbol());
-            if(symbolRecord.isPresent()) {
+            if (symbolRecord.isPresent()) {
                 this.closePosition(symbolRecord.get());
             }
         });
     }
 
     @SneakyThrows
-    public void closePosition(SymbolRecord symbolRecord)  {
+    public void closePosition(SymbolRecord symbolRecord) {
         Settings settings = lickHunterService.getLickHunterSettings();
         SyncRequestClient syncRequestClient = SyncRequestClient.create(settings.getKey(), settings.getSecret());
         List<Order> orders = syncRequestClient.getAllOrders(
-                symbolRecord.getSymbol(),
-                null,
-                null,
-                null,
-                null)
+                        symbolRecord.getSymbol(),
+                        null,
+                        null,
+                        null,
+                        null)
                 .stream()
                 .filter(o -> o.getStatus().equalsIgnoreCase(OrderState.FILLED.name())
                         && o.getType().equalsIgnoreCase(OrderType.MARKET.name()))
                 .sorted(Comparator.comparing(Order::getUpdateTime).reversed())
                 .collect(Collectors.toList());
 
-        if(orders.isEmpty()) {
+        if (orders.isEmpty()) {
             String msg = String.format("Orders for symbol %s is empty", symbolRecord.getSymbol());
             log.error(msg);
             throw new Exception(msg);
@@ -325,9 +326,9 @@ public class TradeServiceImpl implements TradeService {
         Settings settings = lickHunterService.getLickHunterSettings();
         accountService.getAccountInformation();
         Optional<AccountRecord> accountRecord = accountRepository.findByAccountId(settings.getKey());
-        if(accountRecord.isPresent()) {
-            if(accountRecord.get().getTotalUnrealizedProfit().compareTo(BigDecimal.ZERO.doubleValue()) < 0
-                && BigDecimal.valueOf(accountRecord.get().getTotalWalletBalance())
+        if (accountRecord.isPresent()) {
+            if (accountRecord.get().getTotalUnrealizedProfit().compareTo(BigDecimal.ZERO.doubleValue()) < 0
+                    && BigDecimal.valueOf(accountRecord.get().getTotalWalletBalance())
                     .multiply(new BigDecimal(settings.getStoploss()).divide(BigDecimal.valueOf(100), 2, RoundingMode.HALF_DOWN))
                     .compareTo(BigDecimal.valueOf(accountRecord.get().getTotalUnrealizedProfit()).abs()) < 0) {
                 lickHunterScheduledTasks.pauseOnClose();
@@ -337,19 +338,47 @@ public class TradeServiceImpl implements TradeService {
         }
     }
 
+    @SneakyThrows
+    public void stopLossSinglePosition() {
+        Settings settings = lickHunterService.getLickHunterSettings();
+        accountService.getAccountInformation();
+        Optional<AccountRecord> accountRecord = accountRepository.findByAccountId(settings.getKey());
+        if (accountRecord.isPresent() && new BigDecimal(settings.getStoplossSinglePosition()).compareTo(BigDecimal.valueOf(0)) > 0) {
+
+            BigDecimal totalUnrealizedLossAllowed = BigDecimal.valueOf(accountRecord.get().getTotalWalletBalance())
+                    .multiply(new BigDecimal(settings.getStoplossSinglePosition()).divide(BigDecimal.valueOf(100), 2, RoundingMode.HALF_DOWN));
+
+            List<PositionRecord> activePositions = positionRepository.findActivePositionsByAccountId(settings.getKey());
+
+            activePositions.forEach(positionRecord -> {
+                Optional<SymbolRecord> symbolRecord = symbolRepository.findBySymbol(positionRecord.getSymbol());
+
+                if (symbolRecord.isPresent()) {
+                    TickerQueryTO tickerQueryTO = lickHunterService.getQuery();
+                    if ((positionRecord.getUnrealizedProfit() < 0 &&
+                            BigDecimal.valueOf(positionRecord.getUnrealizedProfit()).abs().compareTo(totalUnrealizedLossAllowed) > 0) ||
+                            BigDecimal.valueOf(symbolRecord.get().getPriceChangePercent()).abs().compareTo(tickerQueryTO.getMaxPriceChangePercent()) > 0) {
+                        closePosition(symbolRecord.get());
+                        telegramService.send("Stop Loss triggered. Closed position for symbol " + symbolRecord.get().getSymbol());
+                    }
+                }
+            });
+        }
+    }
+
     private BigDecimal getPercentTakeProfit(SymbolRecord symbolRecord) {
         UserDefinedSettings activeSettings = lickHunterService.getActiveSettings();
-        if(symbolRecord.getSixthBuy() != 0) {
+        if (symbolRecord.getSixthBuy() != 0) {
             return activeSettings.getRangeSix().getPercentTakeProfit();
-        } else if(symbolRecord.getFifthBuy() != 0) {
+        } else if (symbolRecord.getFifthBuy() != 0) {
             return activeSettings.getRangeFive().getPercentTakeProfit();
-        } else if(symbolRecord.getFourthBuy() != 0) {
+        } else if (symbolRecord.getFourthBuy() != 0) {
             return activeSettings.getRangeFour().getPercentTakeProfit();
-        } else if(symbolRecord.getThirdBuy() != 0) {
+        } else if (symbolRecord.getThirdBuy() != 0) {
             return activeSettings.getRangeThree().getPercentTakeProfit();
-        } else if(symbolRecord.getSecondBuy() != 0) {
+        } else if (symbolRecord.getSecondBuy() != 0) {
             return activeSettings.getRangeTwo().getPercentTakeProfit();
-        } else if(symbolRecord.getFirstBuy() != 0) {
+        } else if (symbolRecord.getFirstBuy() != 0) {
             return activeSettings.getRangeOne().getPercentTakeProfit();
         }
         return new BigDecimal(lickHunterService.getLickHunterSettings().getTakeprofit());
