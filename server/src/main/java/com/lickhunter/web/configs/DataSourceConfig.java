@@ -33,7 +33,7 @@ public class DataSourceConfig {
         SQLiteConfig config= new SQLiteConfig();
         config.setOpenMode(SQLiteOpenMode.OPEN_URI);
         config.setOpenMode(SQLiteOpenMode.FULLMUTEX);
-        config.setBusyTimeout("10000");
+        config.setBusyTimeout(10000);
         hikariConfig.setPoolName("springHikariCP");
         hikariConfig.addDataSourceProperty(SQLiteConfig.Pragma.OPEN_MODE.pragmaName, config.getOpenModeFlags());
         hikariConfig.addDataSourceProperty(SQLiteConfig.Pragma.JOURNAL_MODE.pragmaName, SQLiteConfig.JournalMode.WAL );
