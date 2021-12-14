@@ -18,5 +18,6 @@ public interface TradeService {
     void closeAllPositions();
     void closePosition(SymbolRecord symbolRecord);
     void stopLoss();
+    void stopLossSinglePosition();
     void createTakeProfitOrders();
 }

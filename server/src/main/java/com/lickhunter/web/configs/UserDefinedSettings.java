@@ -47,6 +47,10 @@ public class UserDefinedSettings {
     private Double offsetThree;
     @JsonProperty("offsetVolatilityThree")
     private Double offsetVolatilityThree;
+    @JsonProperty("offsetLimit")
+    private Double offsetLimit;
+    @JsonProperty("offsetVolatilityLimit")
+    private Double offsetVolatilityLimit;
     @JsonProperty("dcaStart")
     private BigDecimal dcaStart;
     @JsonProperty("rangeOne")

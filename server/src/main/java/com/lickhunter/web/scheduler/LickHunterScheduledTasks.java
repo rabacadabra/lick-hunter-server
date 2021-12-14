@@ -56,6 +56,8 @@ public class LickHunterScheduledTasks {
     private final ApplicationConfig applicationConfig;
     private final MessageConfig messageConfig;
     private final SymbolRepository symbolRepository;
+    private final TradeService tradeService;
+
     @Qualifier("discordNotification")
     @Autowired
     private NotificationService<DiscordWebhook> notificationService;
@@ -179,9 +181,9 @@ public class LickHunterScheduledTasks {
         TimeSeries previous = sentimentsAsset.getData().get(0).getTimeSeries().get(1);
         if(current.getSocialVolume().compareTo(previous.getSocialVolume()) > 0) {
             BigDecimal socialVolumeChange = BigDecimal.valueOf(((current.getSocialVolume().doubleValue() -
-                    previous.getSocialVolume().doubleValue()) /
-                    previous.getSocialVolume().doubleValue()) *
-                    100D)
+                            previous.getSocialVolume().doubleValue()) /
+                            previous.getSocialVolume().doubleValue()) *
+                            100D)
                     .setScale(2, RoundingMode.HALF_UP);
             if(socialVolumeChange.compareTo(BigDecimal.valueOf(applicationConfig.getSocialVolumePercentage())) > 0) {
                 DiscordWebhook webhook = new DiscordWebhook();
@@ -206,9 +208,9 @@ public class LickHunterScheduledTasks {
         TimeSeries previous = sentimentsAsset.getData().get(0).getTimeSeries().get(1);
         if(current.getTweets().compareTo(previous.getTweets()) > 0) {
             BigDecimal tweetChange = BigDecimal.valueOf(((current.getTweets().doubleValue() -
-                    previous.getTweets().doubleValue()) /
-                    previous.getTweets().doubleValue()) *
-                    100D)
+                            previous.getTweets().doubleValue()) /
+                            previous.getTweets().doubleValue()) *
+                            100D)
                     .setScale(2, RoundingMode.HALF_UP);
             if(tweetChange.compareTo(BigDecimal.valueOf(applicationConfig.getTwitterVolumePercentage())) > 0) {
                 DiscordWebhook webhook = new DiscordWebhook();
@@ -266,28 +268,42 @@ public class LickHunterScheduledTasks {
         if(activeSettings.getAutoOffset() && Objects.nonNull(symbolRecord.getVolatility())) {
             if(symbolRecord.getVolatility().compareTo(activeSettings.getOffsetVolatilityOne()) < 0
                     && symbolRecord.getVolatility().compareTo(activeSettings.getOffsetVolatilityTwo()) < 0
-                    && symbolRecord.getVolatility().compareTo(activeSettings.getOffsetVolatilityThree()) < 0) {
+                    && symbolRecord.getVolatility().compareTo(activeSettings.getOffsetVolatilityThree()) < 0
+                    && symbolRecord.getVolatility().compareTo(activeSettings.getOffsetVolatilityLimit()) < 0) {
                 coins.setLongoffset(activeSettings.getLongOffset().toString());
                 coins.setShortoffset(activeSettings.getShortOffset().toString());
             }
             if(symbolRecord.getVolatility().compareTo(activeSettings.getOffsetVolatilityOne()) > 0
                     && symbolRecord.getVolatility().compareTo(activeSettings.getOffsetVolatilityTwo()) < 0
-                    && symbolRecord.getVolatility().compareTo(activeSettings.getOffsetVolatilityThree()) < 0) {
+                    && symbolRecord.getVolatility().compareTo(activeSettings.getOffsetVolatilityThree()) < 0
+                    && symbolRecord.getVolatility().compareTo(activeSettings.getOffsetVolatilityLimit()) < 0) {
                 coins.setLongoffset(activeSettings.getOffsetOne().toString());
                 coins.setShortoffset(activeSettings.getOffsetOne().toString());
             }
             if(symbolRecord.getVolatility().compareTo(activeSettings.getOffsetVolatilityOne()) > 0
                     && symbolRecord.getVolatility().compareTo(activeSettings.getOffsetVolatilityTwo()) > 0
-                    && symbolRecord.getVolatility().compareTo(activeSettings.getOffsetVolatilityThree()) < 0) {
+                    && symbolRecord.getVolatility().compareTo(activeSettings.getOffsetVolatilityThree()) < 0
+                    && symbolRecord.getVolatility().compareTo(activeSettings.getOffsetVolatilityLimit()) < 0) {
                 coins.setLongoffset(activeSettings.getOffsetTwo().toString());
                 coins.setShortoffset(activeSettings.getOffsetTwo().toString());
             }
             if(symbolRecord.getVolatility().compareTo(activeSettings.getOffsetVolatilityOne()) > 0
                     && symbolRecord.getVolatility().compareTo(activeSettings.getOffsetVolatilityTwo()) > 0
-                    && symbolRecord.getVolatility().compareTo(activeSettings.getOffsetVolatilityThree()) > 0) {
+                    && symbolRecord.getVolatility().compareTo(activeSettings.getOffsetVolatilityThree()) > 0
+                    && symbolRecord.getVolatility().compareTo(activeSettings.getOffsetVolatilityLimit()) < 0) {
                 coins.setLongoffset(activeSettings.getOffsetThree().toString());
                 coins.setShortoffset(activeSettings.getOffsetThree().toString());
             }
+            if(symbolRecord.getVolatility().compareTo(activeSettings.getOffsetVolatilityOne()) > 0
+                    && symbolRecord.getVolatility().compareTo(activeSettings.getOffsetVolatilityTwo()) > 0
+                    && symbolRecord.getVolatility().compareTo(activeSettings.getOffsetVolatilityThree()) > 0
+                    && symbolRecord.getVolatility().compareTo(activeSettings.getOffsetVolatilityLimit()) > 0) {
+                coins.setLongoffset(activeSettings.getOffsetLimit().toString());
+                coins.setShortoffset(activeSettings.getOffsetLimit().toString());
+
+                tradeService.closePosition(symbolRecord);
+            }
+
         } else {
             coins.setLongoffset(activeSettings.getLongOffset().toString());
             coins.setShortoffset(activeSettings.getShortOffset().toString());
