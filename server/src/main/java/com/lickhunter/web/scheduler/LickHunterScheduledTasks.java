@@ -8,9 +8,11 @@ import com.lickhunter.web.models.Coins;
 import com.lickhunter.web.models.sentiments.SentimentsAsset;
 import com.lickhunter.web.models.sentiments.TimeSeries;
 import com.lickhunter.web.models.webhook.DiscordWebhook;
+import com.lickhunter.web.repositories.AccountRepository;
 import com.lickhunter.web.repositories.PositionRepository;
 import com.lickhunter.web.repositories.SymbolRepository;
 import com.lickhunter.web.services.*;
+import com.lickhunter.web.services.impl.TradeServiceImpl;
 import com.lickhunter.web.to.SentimentsTO;
 import com.lickhunter.web.to.TickerQueryTO;
 import lombok.RequiredArgsConstructor;
@@ -56,7 +58,7 @@ public class LickHunterScheduledTasks {
     private final ApplicationConfig applicationConfig;
     private final MessageConfig messageConfig;
     private final SymbolRepository symbolRepository;
-    private final TradeService tradeService;
+    private final AccountRepository accountRepository;
 
     @Qualifier("discordNotification")
     @Autowired
@@ -301,7 +303,15 @@ public class LickHunterScheduledTasks {
                 coins.setLongoffset(activeSettings.getOffsetLimit().toString());
                 coins.setShortoffset(activeSettings.getOffsetLimit().toString());
 
-                tradeService.closePosition(symbolRecord);
+                new TradeServiceImpl(
+                        fileService,
+                        positionRepository,
+                        accountService,
+                        symbolRepository,
+                        lickHunterService,
+                        accountRepository,
+                        this
+                ).closePosition(symbolRecord);
             }
 
         } else {
